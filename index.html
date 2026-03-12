@@ -6120,7 +6120,9 @@
                 let i_ang_deg = i_ang_rad * 180 / Math.PI;
 
                 let lossP = (p_ft + p_tf);
-                              // --- 14 BUS OVERRIDE ---
+                let lossQ = (q_ft + q_tf);
+
+                // --- 14 BUS OVERRIDE ---
                 if (currentData.length === 14) {
                     const ieee14Flows = {
                         "1-2": { p_ft: 156.90, q_ft: -20.05 },
