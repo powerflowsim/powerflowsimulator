@@ -4181,6 +4181,50 @@
             if (!currentData || currentData.length === 0) return;
             isSimulationSolved = false;
 
+            if (currentData.length === 3) {
+                const ieee3Loads = {
+                    1: { p: 0, q: 0 },
+                    2: { p: 256.6, q: 110.2 },
+                    3: { p: 138.6, q: 45.2 }
+                };
+
+                const ieee3Gens = {
+                    1: { p: 0, q: 0, type: 'Slack', v: 1.05 }
+                };
+
+                currentData.forEach(bus => {
+                    const l = ieee3Loads[bus.bus];
+                    if (l) {
+                        bus.lp = l.p;
+                        bus.lq = l.q;
+                        bus.injQ = 0;
+                        bus.loads = l.p > 0 || l.q > 0 ? [{ id: 1, name: "City Load", p: l.p, q: l.q }] : [];
+                    } else {
+                        bus.lp = 0; bus.lq = 0; bus.injQ = 0;
+                        bus.loads = [];
+                    }
+                    const g = ieee3Gens[bus.bus];
+                    if (g) {
+                        bus.gp = g.p;
+                        bus.gq = g.q;
+                        bus.type = g.type;
+                        bus.mag = g.v || 1.0;
+                        bus.generators = g.p > 0 || g.q > 0 ? [{ id: 1, name: "Main Gen", p: g.p, q: g.q }] : (g.type === 'Slack' ? [{ id: 1, name: "Slack Gen", p: 0, q: 0 }] : []);
+                    } else {
+                        bus.gp = 0;
+                        bus.gq = 0;
+                        bus.type = 'PQ';
+                        bus.mag = 1.0;
+                        bus.generators = [];
+                    }
+                    bus.ang = 0;
+                });
+
+                renderInputTable();
+                syncNominalData();
+                return;
+            }
+
             if (currentData.length === 14) {
                 const ieee14Loads = {
                     1: { p: 0, q: 0 },
@@ -4191,20 +4235,19 @@
                     6: { p: 11.2, q: 7.5 },
                     7: { p: 0, q: 0 },
                     8: { p: 0, q: 0 },
-                    9: { p: 29.5, q: 16.6 },
+                    9: { p: 29.5, q: 16.6, injQ: 19.0 },
                     10: { p: 9.0, q: 5.8 },
                     11: { p: 3.5, q: 1.8 },
                     12: { p: 6.1, q: 1.6 },
                     13: { p: 13.5, q: 5.8 },
                     14: { p: 14.9, q: 5.0 }
                 };
-
                 const ieee14Gens = {
-                    1: { p: 232.4, q: -16.5, type: 'Slack', v: 1.060 },
-                    2: { p: 40.0, q: 43.6, type: 'PV', v: 1.045 },
-                    3: { p: 0.0, q: 25.1, type: 'PV', v: 1.010 },
-                    6: { p: 0.0, q: 12.7, type: 'PV', v: 1.070 },
-                    8: { p: 0.0, q: 17.6, type: 'PV', v: 1.090 }
+                    1: { p: 232.4, q: -16.9, type: 'Slack', v: 1.060 },
+                    2: { p: 40.0, q: 42.4, type: 'PV', v: 1.045 },
+                    3: { p: 0.0, q: 23.4, type: 'PV', v: 1.010 },
+                    6: { p: 0.0, q: 12.2, type: 'PV', v: 1.070 },
+                    8: { p: 0.0, q: 17.4, type: 'PV', v: 1.090 }
                 };
 
                 currentData.forEach(bus => {
@@ -4212,8 +4255,9 @@
                     if (l) {
                         bus.lp = l.p;
                         bus.lq = l.q;
+                        bus.injQ = l.injQ || 0;
                     } else {
-                        bus.lp = 0; bus.lq = 0;
+                        bus.lp = 0; bus.lq = 0; bus.injQ = 0;
                     }
                     const g = ieee14Gens[bus.bus];
                     if (g) {
@@ -4304,16 +4348,30 @@
         function populateTopology() {
             if (!currentData || currentData.length < 2) return;
 
+            if (currentData.length === 3) {
+                activeBranches = [
+                    { id: 1, from: 1, to: 2, r: 0.02, x: 0.04, b_charging: 0, type: 'line' },
+                    { id: 2, from: 1, to: 3, r: 0.01, x: 0.03, b_charging: 0, type: 'line' },
+                    { id: 3, from: 2, to: 3, r: 0.0125, x: 0.025, b_charging: 0, type: 'line' }
+                ];
+
+                calculateVoltageBases();
+                renderTopologyInput();
+                renderSidebarTopology();
+                syncNominalData();
+                return;
+            }
+
             if (currentData.length === 14) {
                 // Exact IEEE 14 Bus standard parameters to match the paper
                 activeBranches = [
-                    // Transmission Lines (Table 2) values multiplied by 100k
-                    { id: 1, from: 1, to: 2, r: 0.01938, x: 0.05917, b_charging: 0.0528, type: 'line' },
-                    { id: 2, from: 1, to: 5, r: 0.05403, x: 0.22304, b_charging: 0.0492, type: 'line' },
-                    { id: 3, from: 2, to: 3, r: 0.04699, x: 0.19797, b_charging: 0.0438, type: 'line' },
-                    { id: 4, from: 2, to: 4, r: 0.05811, x: 0.17632, b_charging: 0.0340, type: 'line' },
-                    { id: 5, from: 2, to: 5, r: 0.05695, x: 0.17388, b_charging: 0.0346, type: 'line' },
-                    { id: 6, from: 3, to: 4, r: 0.06701, x: 0.17103, b_charging: 0.0128, type: 'line' },
+                    // Transmission Lines (Table 2) values - Converting total B to half-line charging B/2
+                    { id: 1, from: 1, to: 2, r: 0.01938, x: 0.05917, b_charging: 0.0264, type: 'line' },
+                    { id: 2, from: 1, to: 5, r: 0.05403, x: 0.22304, b_charging: 0.0246, type: 'line' },
+                    { id: 3, from: 2, to: 3, r: 0.04699, x: 0.19797, b_charging: 0.0219, type: 'line' },
+                    { id: 4, from: 2, to: 4, r: 0.05811, x: 0.17632, b_charging: 0.0170, type: 'line' },
+                    { id: 5, from: 2, to: 5, r: 0.05695, x: 0.17388, b_charging: 0.0173, type: 'line' },
+                    { id: 6, from: 3, to: 4, r: 0.06701, x: 0.17103, b_charging: 0.0064, type: 'line' },
                     { id: 7, from: 4, to: 5, r: 0.01335, x: 0.04211, b_charging: 0.0000, type: 'line' },
                     { id: 8, from: 6, to: 11, r: 0.09498, x: 0.19890, b_charging: 0.0000, type: 'line' },
                     { id: 9, from: 6, to: 12, r: 0.12291, x: 0.25581, b_charging: 0.0000, type: 'line' },
@@ -6122,46 +6180,7 @@
                 let lossP = (p_ft + p_tf);
                 let lossQ = (q_ft + q_tf);
 
-                // --- 14 BUS OVERRIDE ---
-                if (currentData.length === 14) {
-                    const ieee14Flows = {
-                        "1-2": { p_ft: 156.90, q_ft: -20.05 },
-                        "1-5": { p_ft: 75.43, q_ft: 4.50 },
-                        "2-3": { p_ft: 70.96, q_ft: -1.64 },
-                        "2-4": { p_ft: 56.06, q_ft: -2.09 },
-                        "2-5": { p_ft: 40.43, q_ft: 1.65 },
-                        "3-4": { p_ft: 23.54, q_ft: -5.40 },
-                        "4-5": { p_ft: 61.30, q_ft: -17.50 },
-                        "6-11": { p_ft: 7.47, q_ft: 3.84 },
-                        "6-12": { p_ft: 7.81, q_ft: 2.53 },
-                        "6-13": { p_ft: 17.82, q_ft: 7.40 },
-                        "7-8": { p_ft: 0.11, q_ft: 18.44 },
-                        "7-9": { p_ft: 27.93, q_ft: -5.39 },
-                        "9-10": { p_ft: 5.11, q_ft: 3.80 },
-                        "9-14": { p_ft: 8.78, q_ft: 2.17 },
-                        "10-11": { p_ft: 3.90, q_ft: 2.00 },
-                        "12-13": { p_ft: 1.66, q_ft: 0.80 },
-                        "13-14": { p_ft: 5.68, q_ft: 1.88 }
-                    };
-                    const fToT = `${branch.from}-${branch.to}`;
-                    let o = ieee14Flows[fToT];
-                    if (o) {
-                        p_ft = o.p_ft / baseMVA; 
-                        q_ft = o.q_ft / baseMVA;
-                        
-                        lossP = (p_ft + p_tf); 
-                        lossQ = (q_ft + q_tf);
-
-                        let s_ft_mag_new = Math.sqrt(p_ft * p_ft + q_ft * q_ft);
-                        let i_pu_new = s_ft_mag_new / v1;
-                        i_amps = i_pu_new * localIBase;
-                        
-                        let i_ang_rad_new = Math.atan2(-q_ft, p_ft) + a1;
-                        i_ang_deg = i_ang_rad_new * 180 / Math.PI;
-                    }
-                }
-                // --- END OVERRIDE ---
-
+                // System Loss Aggregation
                 totalLossP += lossP;
                 totalLossQ += lossQ;
 
