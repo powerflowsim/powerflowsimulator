@@ -2,6 +2,8 @@
 
 
 
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -1279,10 +1281,16 @@
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="font-bold text-gray-700 dark:text-gray-200">System Bus Configuration</h3>
                                 <div class="flex gap-2">
-                                    <button onclick="playSound(); populateTestValues()" id="btnPopulateValues"
-                                        class="px-3 py-1 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded border border-amber-200 text-sm font-semibold flex items-center gap-2 btn-click transition-all duration-500"
-                                        title="Fill with random test data">
-                                        <i class="ph ph-magic-wand"></i> Populate Test Values
+                                    <select class="px-2 py-1 bg-amber-50 text-amber-600 rounded border border-amber-200 text-sm font-semibold" id="sampleProblemSelect">
+                                        <option value="none">-- Select Sample --</option>
+                                        <option value="3bus_1">Sample 1: 3-Bus (PV)</option>
+                                        <option value="3bus_2">Sample 2: 3-Bus (PQ)</option>
+                                        <option value="6bus">Sample 3: 6-Bus</option>
+                                        <option value="15bus">Sample 4: 15-Bus</option>
+                                    </select>
+                                    <button onclick="playSound(); populateSampleData()" id="btnPopulateValues"
+                                        class="px-3 py-1 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded border border-amber-200 text-sm font-semibold flex items-center gap-2 btn-click transition-all duration-500">
+                                        <i class="ph ph-magic-wand"></i> Populate
                                     </button>
                                     <button onclick="playSound(); addBus()"
                                         class="px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded border border-blue-200 text-sm font-semibold flex items-center gap-2 btn-click">
@@ -1297,7 +1305,7 @@
                                 <div
                                     class="bg-gray-50 dark:bg-slate-900 px-4 py-2 border-b border-gray-200 dark:border-slate-700">
                                     <h4 class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Bus Type
-                                        Summary Reference</h4>
+                                        Summary Reference <span id="activeSampleLabel" class="ml-2 text-amber-600 font-bold"></span></h4>
                                 </div>
                                 <table class="min-w-full text-xs text-left">
                                     <thead
@@ -4179,234 +4187,82 @@
             renderUnitList();
         }
 
-        function populateTestValues() {
-            if (!currentData || currentData.length === 0) return;
+        function populateSampleData() {
+            const selection = document.getElementById('sampleProblemSelect').value;
+            if (selection === 'none') return;
             isSimulationSolved = false;
 
-            if (currentData.length === 3) {
-                const ieee3Loads = {
-                    1: { p: 0, q: 0 },
-                    2: { p: 256.6, q: 110.2 },
-                    3: { p: 138.6, q: 45.2 }
-                };
-
-                const ieee3Gens = {
-                    1: { p: 0, q: 0, type: 'Slack', v: 1.05 }
-                };
-
-                currentData.forEach(bus => {
-                    const l = ieee3Loads[bus.bus];
-                    if (l) {
-                        bus.lp = l.p;
-                        bus.lq = l.q;
-                        bus.injQ = 0;
-                        bus.loads = l.p > 0 || l.q > 0 ? [{ id: 1, name: "City Load", p: l.p, q: l.q }] : [];
-                    } else {
-                        bus.lp = 0; bus.lq = 0; bus.injQ = 0;
-                        bus.loads = [];
-                    }
-                    const g = ieee3Gens[bus.bus];
-                    if (g) {
-                        bus.gp = g.p;
-                        bus.gq = g.q;
-                        bus.type = g.type;
-                        bus.mag = g.v || 1.0;
-                        bus.generators = g.p > 0 || g.q > 0 ? [{ id: 1, name: "Main Gen", p: g.p, q: g.q }] : (g.type === 'Slack' ? [{ id: 1, name: "Slack Gen", p: 0, q: 0 }] : []);
-                    } else {
-                        bus.gp = 0;
-                        bus.gq = 0;
-                        bus.type = 'PQ';
-                        bus.mag = 1.0;
-                        bus.generators = [];
-                    }
-                    bus.ang = 0;
-                });
-
-                renderInputTable();
-                syncNominalData();
-                return;
+            if (selection === '3bus_1') {
+                currentData = [
+                    { bus: 1, type: 'Slack', mag: 1.05, ang: 0, lp: 0, lq: 0, gp: 0, gq: 0, loads: [], generators: [{id:1, name:"Slack Gen", p:0, q:0}] },
+                    { bus: 2, type: 'PQ', mag: 1.0, ang: 0, lp: 400, lq: 250, gp: 0, gq: 0, loads: [{id:1, name:"Load 2", p:400, q:250}], generators: [] },
+                    { bus: 3, type: 'PV', mag: 1.04, ang: 0, lp: 0, lq: 0, gp: 200, gq: 0, loads: [], generators: [{id:1, name:"Gen 3", p:200, q:0}] }
+                ];
+                populateTopology();
             }
-
-            if (currentData.length === 14) {
-                const ieee14Loads = {
-                    1: { p: 0, q: 0 },
-                    2: { p: 21.7, q: 12.7 },
-                    3: { p: 94.2, q: 19.0 },
-                    4: { p: 47.8, q: -3.9 },
-                    5: { p: 7.6, q: 1.6 },
-                    6: { p: 11.2, q: 7.5 },
-                    7: { p: 0, q: 0 },
-                    8: { p: 0, q: 0 },
-                    9: { p: 29.5, q: 16.6, injQ: 19.0 },
-                    10: { p: 9.0, q: 5.8 },
-                    11: { p: 3.5, q: 1.8 },
-                    12: { p: 6.1, q: 1.6 },
-                    13: { p: 13.5, q: 5.8 },
-                    14: { p: 14.9, q: 5.0 }
-                };
-                const ieee14Gens = {
-                    1: { p: 232.4, q: -16.9, type: 'Slack', v: 1.060 },
-                    2: { p: 40.0, q: 42.4, type: 'PV', v: 1.045 },
-                    3: { p: 0.0, q: 23.4, type: 'PV', v: 1.010 },
-                    6: { p: 0.0, q: 12.2, type: 'PV', v: 1.070 },
-                    8: { p: 0.0, q: 17.4, type: 'PV', v: 1.090 }
-                };
-
-                currentData.forEach(bus => {
-                    const l = ieee14Loads[bus.bus];
-                    if (l) {
-                        bus.lp = l.p;
-                        bus.lq = l.q;
-                        bus.injQ = l.injQ || 0;
-                    } else {
-                        bus.lp = 0; bus.lq = 0; bus.injQ = 0;
-                    }
-                    const g = ieee14Gens[bus.bus];
-                    if (g) {
-                        bus.gp = g.p;
-                        bus.gq = g.q;
-                        bus.type = g.type;
-                        if (g.v) bus.mag = g.v;
-                        else bus.mag = 1.0;
-                    } else {
-                        bus.gp = 0;
-                        bus.gq = 0;
-                        bus.type = 'PQ';
-                        bus.mag = 1.0;
-                    }
-                    bus.ang = 0;
-                });
+            else if (selection === '3bus_2') {
+                currentData = [
+                    { bus: 1, type: 'Slack', mag: 1.05, ang: 0, lp: 0, lq: 0, gp: 0, gq: 0, loads: [], generators: [{id:1, name:"Slack Gen", p:0, q:0}] },
+                    { bus: 2, type: 'PQ', mag: 1.0, ang: 0, lp: 256.6, lq: 110.2, gp: 0, gq: 0, loads: [{id:1, name:"Load 2", p:256.6, q:110.2}], generators: [] },
+                    { bus: 3, type: 'PQ', mag: 1.0, ang: 0, lp: 138.6, lq: 45.2, gp: 0, gq: 0, loads: [{id:1, name:"Load 3", p:138.6, q:45.2}], generators: [] }
+                ];
+                populateTopology();
+            }
+            else if (selection === '6bus') {
+                currentData = [
+                    { bus: 1, type: 'Slack', mag: 1.05, ang: 0, lp: 0, lq: 0, gp: 0, gq: 0, loads: [], generators: [{id:1, name:"Slack Gen", p:0, q:0}] },
+                    { bus: 2, type: 'PV', mag: 1.1, ang: 0, lp: 0, lq: 0, gp: 52, gq: 0, loads: [], generators: [{id:1, name:"Gen 2", p:52, q:0}] },
+                    { bus: 3, type: 'PQ', mag: 1.0, ang: 0, lp: 54, lq: 13, gp: 0, gq: 0, loads: [{id:1, name:"Load 3", p:54, q:13}], generators: [] },
+                    { bus: 4, type: 'PQ', mag: 1.0, ang: 0, lp: 0, lq: 0, gp: 0, gq: 0, loads: [], generators: [] },
+                    { bus: 5, type: 'PQ', mag: 1.0, ang: 0, lp: 32, lq: 18, gp: 0, gq: 0, loads: [{id:1, name:"Load 5", p:32, q:18}], generators: [] },
+                    { bus: 6, type: 'PQ', mag: 1.0, ang: 0, lp: 52, lq: 11, gp: 0, gq: 0, loads: [{id:1, name:"Load 6", p:52, q:11}], generators: [] }
+                ];
+                populateTopology();
+            }
+            else if (selection === '15bus') {
+                const baseMVAInput = document.getElementById('baseMVAInput');
+                if (baseMVAInput) baseMVAInput.value = 1;
                 
-                renderInputTable();
-                syncNominalData();
-                const btn = document.querySelector('button[title="Fill with random test data"]');
-                if (btn) {
-                    const originalHTML = btn.innerHTML;
-                    btn.innerHTML = `<i class="ph ph-check"></i> Done`;
-                    setTimeout(() => { btn.innerHTML = originalHTML; }, 1000);
-                }
-                return;
-            }
-
-            if (currentData.length === 15) {
-                // ETAP 15-Bus Load Data (MW and Mvar)
-                // Calculated from ETAP Load Summary: MVA and 70% PF (mostly)
-                const etap15Loads = {
-                    1: { p: 0.000, q: 0.000 },      // Slack Bus
-                    2: { p: 0.044, q: 0.046 },      // Derived from flows (Z1 - Z2 - Z3 - Z5)
-                    3: { p: 0.070, q: 0.071 },      // Derived from flows (Z3 - Z4 - Z8)
-                    4: { p: 0.040, q: 0.143 },      // Derived from flows (Z4 - Z11 - Z12 - Z14)
-                    5: { p: 0.044, q: 0.045 },      // Exact Z12 flow
-                    6: { p: 0.070, q: 0.071 },      // Derived from flows (Z5 - Z6 - Z7)
-                    7: { p: 0.044, q: 0.045 },      // Exact Z6 flow
-                    8: { p: 0.140, q: 0.143 },      // Exact Z7 flow
-                    9: { p: 0.140, q: 0.143 },      // Derived from flows (Z2 - Z13)
-                    10: { p: 0.070, q: 0.071 },     // Exact Z13 flow
-                    11: { p: 0.140, q: 0.143 },     // Derived from flows (Z8 - Z9)
-                    12: { p: 0.070, q: 0.071 },     // Derived from flows (Z9 - Z10)
-                    13: { p: 0.044, q: 0.045 },     // Exact Z10 flow
-                    14: { p: 0.070, q: 0.071 },     // Exact Z14 flow
-                    15: { p: 0.140, q: 0.143 }      // Exact Z11 flow
+                const loadData15 = {
+                    2: { p: 0.044, q: 0.045 }, 3: { p: 0.07, q: 0.071 }, 4: { p: 0.04, q: 0.143 },
+                    5: { p: 0.044, q: 0.045 }, 6: { p: 0.07, q: 0.071 }, 7: { p: 0.044, q: 0.045 },
+                    8: { p: 0.14, q: 0.143 }, 9: { p: 0.14, q: 0.143 }, 10: { p: 0.07, q: 0.071 },
+                    11: { p: 0.14, q: 0.143 }, 12: { p: 0.07, q: 0.071 }, 13: { p: 0.044, q: 0.045 },
+                    14: { p: 0.07, q: 0.071 }, 15: { p: 0.14, q: 0.143 }
                 };
 
-                const kbInput = document.getElementById('baseKVInput');
-                if (kbInput) kbInput.value = 11;
-
-                currentData.forEach(bus => {
-                    const l = etap15Loads[bus.bus];
+                currentData = [];
+                for (let i = 1; i <= 15; i++) {
+                    const l = loadData15[i];
+                    const bus = { bus: i, ang: 0, mag: 1.0, loads: [], generators: [] };
                     if (l) {
-                        bus.lp = l.p;
-                        bus.lq = l.q;
-                        bus.injQ = 0;
-                        bus.loads = l.p > 0 || l.q > 0 ? [{ id: 1, name: "Load " + bus.bus, p: l.p, q: l.q }] : [];
+                        bus.lp = l.p; bus.lq = l.q;
+                        bus.loads = [{ id: 1, name: "Load " + i, p: l.p, q: l.q }];
                     } else {
-                        bus.lp = 0; bus.lq = 0; bus.injQ = 0;
-                        bus.loads = [];
+                        bus.lp = 0; bus.lq = 0;
                     }
-                    
-                    if (bus.bus === 1) {
-                        bus.gp = 0; bus.gq = 0;
+                    if (i === 1) {
                         bus.type = 'Slack';
-                        bus.mag = 1.0;
-                        bus.generators = [{ id: 1, name: "Utility", p: 0, q: 0 }];
+                        bus.generators = [{ id: 1, name: "Slack Gen", p: 0, q: 0 }];
                     } else {
-                        bus.gp = 0; bus.gq = 0;
                         bus.type = 'PQ';
-                        bus.mag = 1.0;
-                        bus.generators = [];
                     }
-                    bus.ang = 0;
-                    bus.baseKV = 11;
-                });
-
-                renderInputTable();
-                syncNominalData();
-                const btn = document.querySelector('button[title="Fill with random test data"]');
-                if (btn) {
-                    const originalHTML = btn.innerHTML;
-                    btn.innerHTML = `<i class="ph ph-check"></i> Done`;
-                    setTimeout(() => { btn.innerHTML = originalHTML; }, 1000);
+                    bus.gp = 0; bus.gq = 0;
+                    currentData.push(bus);
                 }
-                return;
+                populateTopology();
             }
 
-            currentData.forEach(bus => {
-                if (bus.bus === 1) {
-                    // Slack Bus: Usually has Generation, No Load
-                    bus.gp = 0; bus.gq = 0;
-                    bus.lp = 0; bus.lq = 0;
-                    bus.type = 'Slack';
-                    return;
-                }
-
-                const vBase = bus.baseKV || 230;
-
-                // 1. Generation Logic
-                // Higher voltages (>= 115kV) are more likely to have generators
-                if (vBase >= 115) {
-                    const hasGen = Math.random() > 0.4; // 60% chance for high voltage
-                    if (hasGen) {
-                        bus.gp = Math.floor(Math.random() * 100) + 50; // 50-150 MW
-                        bus.gq = Math.floor(Math.random() * 40) + 10;  // 10-50 Mvar
-                        bus.type = 'PV';
-                    } else {
-                        bus.gp = 0; bus.gq = 0;
-                        bus.type = 'PQ';
-                    }
-                } else {
-                    bus.gp = 0; bus.gq = 0; // Low voltage usually has no generation in this model
-                    bus.type = 'PQ';
-                }
-
-                // 2. Load Logic
-                // Lower voltages (<= 69kV) are more likely to have heavy loads
-                if (vBase <= 69) {
-                    bus.lp = Math.floor(Math.random() * 40) + 10; // 10-50 MW
-                    bus.lq = Math.floor(Math.random() * 15) + 5;  // 5-20 Mvar
-                } else {
-                    // Transmission level might have small city loads
-                    const hasLoad = Math.random() > 0.6;
-                    bus.lp = hasLoad ? (Math.floor(Math.random() * 20) + 5) : 0;
-                    bus.lq = hasLoad ? (Math.floor(Math.random() * 8) + 2) : 0;
-                }
-
-                // 3. Initial Guesses
-                bus.mag = parseFloat((0.95 + Math.random() * 0.1).toFixed(3));
-                bus.ang = parseFloat((-5 - Math.random() * 10).toFixed(2));
-
-                // 4. Injection
-                bus.injQ = (vBase <= 34 && Math.random() > 0.8) ? (Math.random() * 10).toFixed(1) : 0;
-            });
+            const activeLabel = document.getElementById('activeSampleLabel');
+            if (activeLabel) activeLabel.innerText = " - Loaded: " + selection.replace('_', ' ').toUpperCase();
 
             renderInputTable();
             syncNominalData();
-            // Show toast or alert
-            const btn = document.querySelector('button[title="Fill with random test data"]');
-            if (btn) {
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = `<i class="ph ph-check"></i> Done`;
-                setTimeout(() => { btn.innerHTML = originalHTML; }, 1000);
-            }
+            
+            // Auto-run simulation to show results immediately
+            setTimeout(() => {
+                runSimulation();
+            }, 100);
         }
 
         function populateTopology() {
@@ -4418,128 +4274,43 @@
                     { id: 2, from: 1, to: 3, r: 0.01, x: 0.03, b_charging: 0, type: 'line' },
                     { id: 3, from: 2, to: 3, r: 0.0125, x: 0.025, b_charging: 0, type: 'line' }
                 ];
-
-                calculateVoltageBases();
-                renderTopologyInput();
-                renderSidebarTopology();
-                syncNominalData();
-                return;
             }
-
-            if (currentData.length === 14) {
-                // Exact IEEE 14 Bus standard parameters to match the paper
+            else if (currentData.length === 6) {
                 activeBranches = [
-                    // Transmission Lines (Table 2) values - Converting total B to half-line charging B/2
-                    { id: 1, from: 1, to: 2, r: 0.01938, x: 0.05917, b_charging: 0.0264, type: 'line' },
-                    { id: 2, from: 1, to: 5, r: 0.05403, x: 0.22304, b_charging: 0.0246, type: 'line' },
-                    { id: 3, from: 2, to: 3, r: 0.04699, x: 0.19797, b_charging: 0.0219, type: 'line' },
-                    { id: 4, from: 2, to: 4, r: 0.05811, x: 0.17632, b_charging: 0.0170, type: 'line' },
-                    { id: 5, from: 2, to: 5, r: 0.05695, x: 0.17388, b_charging: 0.0173, type: 'line' },
-                    { id: 6, from: 3, to: 4, r: 0.06701, x: 0.17103, b_charging: 0.0064, type: 'line' },
-                    { id: 7, from: 4, to: 5, r: 0.01335, x: 0.04211, b_charging: 0.0000, type: 'line' },
-                    { id: 8, from: 6, to: 11, r: 0.09498, x: 0.19890, b_charging: 0.0000, type: 'line' },
-                    { id: 9, from: 6, to: 12, r: 0.12291, x: 0.25581, b_charging: 0.0000, type: 'line' },
-                    { id: 10, from: 6, to: 13, r: 0.06615, x: 0.13027, b_charging: 0.0000, type: 'line' },
-                    { id: 11, from: 7, to: 8, r: 0.00000, x: 0.17615, b_charging: 0.0000, type: 'line' },
-                    { id: 12, from: 7, to: 9, r: 0.00000, x: 0.11001, b_charging: 0.0000, type: 'line' },
-                    { id: 13, from: 9, to: 10, r: 0.03181, x: 0.08450, b_charging: 0.0000, type: 'line' },
-                    { id: 14, from: 9, to: 14, r: 0.12711, x: 0.27038, b_charging: 0.0000, type: 'line' },
-                    { id: 15, from: 10, to: 11, r: 0.08205, x: 0.19207, b_charging: 0.0000, type: 'line' },
-                    { id: 16, from: 12, to: 13, r: 0.22092, x: 0.19988, b_charging: 0.0000, type: 'line' },
-                    { id: 17, from: 13, to: 14, r: 0.17093, x: 0.34802, b_charging: 0.0000, type: 'line' },
-                    
-                    // Transformers
-                    { id: 18, from: 4, to: 7, r: 0.00000, x: 0.20912, b_charging: 0.0000, type: 'transformer', tap: 0.978 },
-                    { id: 19, from: 4, to: 9, r: 0.00000, x: 0.55618, b_charging: 0.0000, type: 'transformer', tap: 0.969 },
-                    { id: 20, from: 5, to: 6, r: 0.00000, x: 0.25202, b_charging: 0.0000, type: 'transformer', tap: 0.932 }
+                    { id: 1, from: 1, to: 4, r: 0.08, x: 0.37, b_charging: 0.014, tap: 1, type: 'line' },
+                    { id: 2, from: 1, to: 6, r: 0.123, x: 0.518, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 3, from: 2, to: 3, r: 0.723, x: 1.05, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 4, from: 2, to: 5, r: 0.282, x: 0.64, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 5, from: 4, to: 6, r: 0.097, x: 0.407, b_charging: 0.015, tap: 1, type: 'line' },
+                    { id: 6, from: 4, to: 3, r: 0, x: 0.133, b_charging: 0, tap: 0.90909, type: 'transformer' },
+                    { id: 7, from: 6, to: 5, r: 0, x: 0.3, b_charging: 0, tap: 0.9756, type: 'transformer' }
                 ];
-
-                calculateVoltageBases();
-                renderTopologyInput();
-                renderSidebarTopology();
-                syncNominalData();
-
-                const btn = document.querySelector('button[title="Auto-connect buses"]');
-                if (btn) {
-                    const originalHTML = btn.innerHTML;
-                    btn.innerHTML = `<i class="ph ph-check"></i> Done`;
-                    setTimeout(() => { btn.innerHTML = originalHTML; }, 1000);
-                }
-                return;
             }
-
-            if (currentData.length === 15) {
-                // ETAP 15-Bus Topology (High-Precision Calibration Z1-Z14)
-                // r and x calculated to yield exactly 3 decimal MW/Mvar flows and matching reported losses.
+            else if (currentData.length === 15) {
                 activeBranches = [
-                    { id: 1, from: 1, to: 2, r: 0.01059, x: 0.00706, b_charging: 0, type: 'line', name: 'Z1' },
-                    { id: 2, from: 2, to: 9, r: 0.0001, x: 0.0001, b_charging: 0, type: 'line', name: 'Z2' },
-                    { id: 3, from: 2, to: 3, r: 0.01090, x: 0.01090, b_charging: 0, type: 'line', name: 'Z3' },
-                    { id: 4, from: 3, to: 4, r: 0.0001, x: 0.0001, b_charging: 0, type: 'line', name: 'Z4' },
-                    { id: 5, from: 2, to: 6, r: 0.0001, x: 0.0001, b_charging: 0, type: 'line', name: 'Z5' },
-                    { id: 6, from: 6, to: 7, r: 0.0001, x: 0.0001, b_charging: 0, type: 'line', name: 'Z6' },
-                    { id: 7, from: 6, to: 8, r: 0.0001, x: 0.0001, b_charging: 0, type: 'line', name: 'Z7' },
-                    { id: 8, from: 3, to: 11, r: 0.0001, x: 0.0001, b_charging: 0, type: 'line', name: 'Z8' },
-                    { id: 9, from: 11, to: 12, r: 0.0001, x: 0.0001, b_charging: 0, type: 'line', name: 'Z9' },
-                    { id: 10, from: 12, to: 13, r: 0.0001, x: 0.0001, b_charging: 0, type: 'line', name: 'Z10' },
-                    { id: 11, from: 4, to: 15, r: 0.0001, x: 0.0001, b_charging: 0, type: 'line', name: 'Z11' },
-                    { id: 12, from: 4, to: 5, r: 0.0001, x: 0.0001, b_charging: 0, type: 'line', name: 'Z12' },
-                    { id: 13, from: 9, to: 10, r: 0.0001, x: 0.0001, b_charging: 0, type: 'line', name: 'Z13' },
-                    { id: 14, from: 4, to: 14, r: 0.0001, x: 0.0001, b_charging: 0, type: 'line', name: 'Z14' }
+                    { id: 1, from: 1, to: 2, r: 0.00011, x: 0.00011, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 2, from: 2, to: 3, r: 0.00012, x: 0.00011, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 3, from: 3, to: 4, r: 0.00008, x: 0.00008, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 4, from: 4, to: 5, r: 0.00015, x: 0.00010, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 5, from: 2, to: 9, r: 0.00020, x: 0.00013, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 6, from: 9, to: 10, r: 0.00017, x: 0.00011, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 7, from: 2, to: 6, r: 0.00025, x: 0.00017, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 8, from: 6, to: 7, r: 0.00011, x: 0.00007, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 9, from: 6, to: 8, r: 0.00012, x: 0.00008, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 10, from: 3, to: 11, r: 0.00012, x: 0.00012, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 11, from: 11, to: 12, r: 0.00024, x: 0.00016, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 12, from: 12, to: 13, r: 0.00020, x: 0.00013, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 13, from: 4, to: 14, r: 0.00022, x: 0.00015, b_charging: 0, tap: 1, type: 'line' },
+                    { id: 14, from: 4, to: 15, r: 0.00020, x: 0.00008, b_charging: 0, tap: 1, type: 'line' }
                 ];
-
-                calculateVoltageBases();
-                renderTopologyInput();
-                renderSidebarTopology();
-                syncNominalData();
-
-                const btn = document.querySelector('button[title="Auto-connect buses"]');
-                if (btn) {
-                    const originalHTML = btn.innerHTML;
-                    btn.innerHTML = `<i class="ph ph-check"></i> Done`;
-                    setTimeout(() => { btn.innerHTML = originalHTML; }, 1000);
-                }
-                return;
-            }
-
-            activeBranches = [];
-            const buses = currentData.map(b => b.bus);
-
-            // Generate a simple radial backbone with LINES (User requested default type: Lines)
-            for (let i = 0; i < buses.length - 1; i++) {
-                activeBranches.push({
-                    id: i + 1,
-                    from: buses[i],
-                    to: buses[i + 1],
-                    r: parseFloat((0.001 + Math.random() * 0.01).toFixed(4)),
-                    x: parseFloat((0.02 + Math.random() * 0.05).toFixed(4)),
-                    b_charging: 0
-                });
-            }
-
-            // Add Random Cross-Links (Ring/Mesh) - 20% density
-            const maxLinks = Math.floor(buses.length * 0.2);
-            for (let k = 0; k < maxLinks; k++) {
-                const idxA = Math.floor(Math.random() * buses.length);
-                let idxB = Math.floor(Math.random() * buses.length);
-
-                if (idxA !== idxB && Math.abs(idxA - idxB) > 1) {
-                    const from = buses[idxA];
-                    const to = buses[idxB];
-                    const exists = activeBranches.some(b => (b.from === from && b.to === to) || (b.from === to && b.to === from));
-
-                    if (!exists) {
-                        const newId = activeBranches.length + 1;
-                        activeBranches.push({
-                            id: newId,
-                            from: from,
-                            to: to,
-                            type: 'line',
-                            r: parseFloat((0.01 + Math.random() * 0.05).toFixed(4)),
-                            x: parseFloat((0.04 + Math.random() * 0.15).toFixed(4)),
-                            b_charging: 0
-                        });
-                    }
+            } else {
+                activeBranches = [];
+                const buses = currentData.map(b => b.bus);
+                for (let i = 0; i < buses.length - 1; i++) {
+                    activeBranches.push({
+                        id: i + 1, from: buses[i], to: buses[i + 1],
+                        r: 0.01, x: 0.05, b_charging: 0
+                    });
                 }
             }
 
@@ -4547,13 +4318,6 @@
             renderTopologyInput();
             renderSidebarTopology();
             syncNominalData();
-
-            const btn = document.querySelector('button[title="Auto-connect buses"]');
-            if (btn) {
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = `<i class="ph ph-check"></i> Done`;
-                setTimeout(() => { btn.innerHTML = originalHTML; }, 1000);
-            }
         }
 
         function deleteBus(index) {
