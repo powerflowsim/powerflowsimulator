@@ -4914,6 +4914,14 @@
             const baseMVA = parseFloat(document.getElementById('baseMVAInput').value) || 100;
             const baseKV = parseFloat(document.getElementById('baseKVInput').value) || 230;
 
+            const safeText = (val) => {
+                const str = String(val);
+                if (str.startsWith('-') || str.startsWith('+') || str.startsWith('=')) {
+                    return `'${str}`;
+                }
+                return str;
+            };
+
             let csvContent = "";
 
             // 1. Title and Metadata
@@ -5018,7 +5026,8 @@
                 const g = r / den;
                 const b = -x / den;
                 const explanation = `Conductance g=${g.toFixed(4)} represents resistive active losses (heat). Susceptance b=${b.toFixed(4)} represents inductive reactances.`;
-                csvContent += `Line ${branch.from}-${branch.to},y = 1 / (r + jx),${r} + j${x},y = 1 / (${r}^2 + ${x}^2) * (${r} - j${x}),${g.toFixed(6)} - j${(-b).toFixed(6)},"${explanation}"\n`;
+                const admString = `${g.toFixed(6)} - j${(-b).toFixed(6)}`;
+                csvContent += `Line ${branch.from}-${branch.to},y = 1 / (r + jx),${r} + j${x},y = 1 / (${r}^2 + ${x}^2) * (${r} - j${x}),${safeText(admString)},"${explanation}"\n`;
             });
             csvContent += `\n`;
 
@@ -5059,7 +5068,8 @@
                     }
                 });
                 const selfInt = `Self-admittance of Bus ${busI}. Diagonal elements indicate the equivalent network strength at Bus ${busI}. A larger magnitude indicates a stiffer bus.`;
-                csvContent += `Y_${busI}${busI},Diagonal,"Sum of connected admittances: ${terms.join(' + ')}",${diagValP.toFixed(6)} + j(${diagValQ.toFixed(6)}),"${selfInt}"\n`;
+                const diagString = `${diagValP.toFixed(6)} + j(${diagValQ.toFixed(6)})`;
+                csvContent += `Y_${busI}${busI},Diagonal,"Sum of connected admittances: ${terms.join(' + ')}",${safeText(diagString)},"${selfInt}"\n`;
 
                 // Off-diagonals
                 for (let j = i + 1; j < n; j++) {
@@ -5075,8 +5085,9 @@
                         const g_mut = -g / a;
                         const b_mut = -b / a;
                         const offInt = `Mutual admittance between Bus ${busI} and Bus ${busJ}. Off-diagonal elements represent direct coupling. Zero value indicates no direct line connection.`;
-                        csvContent += `Y_${busI}${busJ},Off-Diagonal,Mutual admittance: -y_${busI}${busJ} / tap,${g_mut.toFixed(6)} + j(${b_mut.toFixed(6)}),"${offInt}"\n`;
-                        csvContent += `Y_${busJ}${busI},Off-Diagonal,Mutual admittance: -y_${busI}${busJ} / tap,${g_mut.toFixed(6)} + j(${b_mut.toFixed(6)}),"${offInt}"\n`;
+                        const mutString = `${g_mut.toFixed(6)} + j(${b_mut.toFixed(6)})`;
+                        csvContent += `Y_${busI}${busJ},Off-Diagonal,Mutual admittance: -y_${busI}${busJ} / tap,${safeText(mutString)},"${offInt}"\n`;
+                        csvContent += `Y_${busJ}${busI},Off-Diagonal,Mutual admittance: -y_${busI}${busJ} / tap,${safeText(mutString)},"${offInt}"\n`;
                     }
                 }
             }
@@ -5113,7 +5124,7 @@
                         } else {
                             iterInt = `Imbalances are shrinking quadratically, showing successful convergence path. Coordinates V and delta are updating.`;
                         }
-                        csvContent += `Iter ${h.iter},Bus ${bus.bus},${h.V[bIdx].toFixed(4)},${(h.Delta[bIdx] * 180 / Math.PI).toFixed(4)},${dpVal.toFixed(6)},${dqVal.toFixed(6)},"${iterInt}"\n`;
+                        csvContent += `Iter ${h.iter},Bus ${bus.bus},${h.V[bIdx].toFixed(4)},${(h.Delta[bIdx] * 180 / Math.PI).toFixed(4)},${safeText(dpVal.toFixed(6))},${safeText(dqVal.toFixed(6))},"${iterInt}"\n`;
                     });
                 });
                 csvContent += `\n`;
@@ -5156,11 +5167,16 @@
                 const flowPInt = `Active power flows from Bus ${branch.from} (ang: ${busFrom.ang.toFixed(1)}deg) to Bus ${branch.to} (ang: ${busTo.ang.toFixed(1)}deg) driven by phase angle differences.`;
                 const flowQInt = `Reactive power flow driven by voltage magnitude gradient and line charging susceptance b_charging.`;
 
+                const subPFlow = `(${g.toFixed(4)}*(${v1.toFixed(3)}^2/${a.toFixed(2)}^2)) - (${v1.toFixed(3)}*${v2.toFixed(3)}/${a.toFixed(2)})*(${g.toFixed(4)}*cos(${da.toFixed(3)})+${b.toFixed(4)}*sin(${da.toFixed(3)}))`;
+                const subQFlow = `-((${b.toFixed(4)}/${a.toFixed(2)}^2+${b_sh.toFixed(3)})*${v1.toFixed(3)}^2) - (${v1.toFixed(3)}*${v2.toFixed(3)}/${a.toFixed(2)})*(${g.toFixed(4)}*sin(${da.toFixed(3)})-${b.toFixed(4)}*cos(${da.toFixed(3)}))`;
+                const subPLoss = `${(p_ft * baseMVA).toFixed(4)} + (${(p_tf * baseMVA).toFixed(4)})`;
+                const subQLoss = `${(q_ft * baseMVA).toFixed(4)} + (${(q_tf * baseMVA).toFixed(4)})`;
+
                 // Export explicit substituted formula strings
-                csvContent += `Line ${branch.from}-${branch.to},Active Flow P_ij,(g*(Vi^2/a^2)) - (Vi*Vj/a)*(g*cos(d_ij)+b*sin(d_ij)),(${g.toFixed(4)}*(${v1.toFixed(3)}^2/${a.toFixed(2)}^2)) - (${v1.toFixed(3)}*${v2.toFixed(3)}/${a.toFixed(2)})*(${g.toFixed(4)}*cos(${da.toFixed(3)})+${b.toFixed(4)}*sin(${da.toFixed(3)})),${(p_ft * baseMVA).toFixed(4)} MW,"${flowPInt}"\n`;
-                csvContent += `Line ${branch.from}-${branch.to},Reactive Flow Q_ij,-((b/a^2+b_sh)*Vi^2) - (Vi*Vj/a)*(g*sin(d_ij)-b*cos(d_ij)),-((${b.toFixed(4)}/${a.toFixed(2)}^2+${b_sh.toFixed(3)})*${v1.toFixed(3)}^2) - (${v1.toFixed(3)}*${v2.toFixed(3)}/${a.toFixed(2)})*(${g.toFixed(4)}*sin(${da.toFixed(3)})-${b.toFixed(4)}*cos(${da.toFixed(3)})),${(q_ft * baseMVA).toFixed(4)} Mvar,"${flowQInt}"\n`;
-                csvContent += `Line ${branch.from}-${branch.to},Active Loss P_loss,P_ij + P_ji,${(p_ft * baseMVA).toFixed(4)} + (${(p_tf * baseMVA).toFixed(4)}),${(lossP * baseMVA).toFixed(4)} MW,"${lossPInt}"\n`;
-                csvContent += `Line ${branch.from}-${branch.to},Reactive Loss Q_loss,Q_ij + Q_ji,${(q_ft * baseMVA).toFixed(4)} + (${(q_tf * baseMVA).toFixed(4)}),${(lossQ * baseMVA).toFixed(4)} Mvar,Line reactive losses or reactive absorption due to line reactance.\n`;
+                csvContent += `Line ${branch.from}-${branch.to},Active Flow P_ij,(g*(Vi^2/a^2)) - (Vi*Vj/a)*(g*cos(d_ij)+b*sin(d_ij)),${safeText(subPFlow)},${safeText((p_ft * baseMVA).toFixed(4) + " MW")},"${flowPInt}"\n`;
+                csvContent += `Line ${branch.from}-${branch.to},Reactive Flow Q_ij,-((b/a^2+b_sh)*Vi^2) - (Vi*Vj/a)*(g*sin(d_ij)-b*cos(d_ij)),${safeText(subQFlow)},${safeText((q_ft * baseMVA).toFixed(4) + " Mvar")},"${flowQInt}"\n`;
+                csvContent += `Line ${branch.from}-${branch.to},Active Loss P_loss,P_ij + P_ji,${safeText(subPLoss)},${safeText((lossP * baseMVA).toFixed(4) + " MW")},"${lossPInt}"\n`;
+                csvContent += `Line ${branch.from}-${branch.to},Reactive Loss Q_loss,Q_ij + Q_ji,${safeText(subQLoss)},${safeText((lossQ * baseMVA).toFixed(4) + " Mvar")},Line reactive losses or reactive absorption due to line reactance.\n`;
             });
 
             // Download trigger
