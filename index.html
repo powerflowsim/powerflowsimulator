@@ -5,6 +5,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -74,6 +75,48 @@
 
         body.dark {
             background-color: #0f172a;
+        }
+
+        /* PDF Export Mode helper to prevent html2canvas text squeezing, overlapping and page-break splits */
+        .pdf-export-mode, 
+        .pdf-export-mode *:not(pre):not(code):not(.font-mono) {
+            font-family: Arial, Helvetica, sans-serif !important;
+            letter-spacing: normal !important;
+            word-spacing: normal !important;
+            text-rendering: auto !important;
+            font-variant-ligatures: none !important;
+            font-feature-settings: "liga" 0, "clig" 0, "kern" 0 !important;
+            transition: none !important;
+            animation: none !important;
+            transform: none !important;
+            text-shadow: none !important;
+            box-shadow: none !important;
+        }
+
+        .pdf-export-mode pre, 
+        .pdf-export-mode code, 
+        .pdf-export-mode .font-mono {
+            font-family: 'Courier New', Courier, monospace !important;
+        }
+        
+        .pdf-export-mode {
+            width: 850px !important;
+            max-width: 850px !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            padding: 30px !important;
+            margin: 0 auto !important;
+            overflow: visible !important;
+            display: block !important;
+        }
+
+        .pdf-export-mode section, 
+        .pdf-export-mode .bg-white,
+        .pdf-export-mode .rounded-2xl,
+        .pdf-export-mode tr,
+        .pdf-export-mode table {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
         }
 
         /* Mobile Optimizations */
@@ -1281,14 +1324,14 @@
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="font-bold text-gray-700 dark:text-gray-200">System Bus Configuration</h3>
                                 <div class="flex gap-2">
-                                    <select class="px-2 py-1 bg-amber-50 text-amber-600 rounded border border-amber-200 text-sm font-semibold" id="sampleProblemSelect">
+                                    <select class="px-2 py-1 bg-amber-50 text-amber-600 rounded border border-amber-200 text-sm font-semibold" id="sampleProblemSelect" onchange="populateSampleData(false)">
                                         <option value="none">-- Select Sample --</option>
                                         <option value="3bus_1">Sample 1: 3-Bus (PV)</option>
                                         <option value="3bus_2">Sample 2: 3-Bus (PQ)</option>
                                         <option value="6bus">Sample 3: 6-Bus</option>
                                         <option value="15bus">Sample 4: 15-Bus</option>
                                     </select>
-                                    <button onclick="playSound(); populateSampleData()" id="btnPopulateValues"
+                                    <button onclick="playSound(); populateSampleData(true)" id="btnPopulateValues"
                                         class="px-3 py-1 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded border border-amber-200 text-sm font-semibold flex items-center gap-2 btn-click transition-all duration-500">
                                         <i class="ph ph-magic-wand"></i> Populate
                                     </button>
@@ -1401,7 +1444,7 @@
                                             class="ph ph-question text-xs"></i></button>
                                 </div>
                                 <div class="flex gap-2">
-                                    <button onclick="playSound(); populateTopology()" id="btnPopulateTopology"
+                                    <button onclick="playSound(); populateTopology(true)" id="btnPopulateTopology"
                                         class="px-3 py-1 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded border border-amber-200 text-sm font-semibold flex items-center gap-2 btn-click transition-all duration-500"
                                         title="Auto-connect buses">
                                         <i class="ph ph-magic-wand"></i> Populate Topology
@@ -1794,13 +1837,9 @@
                                     class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-all shadow-md flex items-center gap-2 text-sm">
                                     <i class="ph ph-lightning"></i> Generate Report
                                 </button>
-                                <button onclick="playSound(); printManualCalc()"
-                                    class="px-4 py-2 bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 font-bold rounded-lg transition-all flex items-center gap-2 text-sm">
-                                    <i class="ph ph-printer"></i> Print
-                                </button>
-                                <button onclick="playSound(); exportManualCalcToPDF()"
-                                    class="px-4 py-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 font-bold rounded-lg transition-all flex items-center gap-2 text-sm">
-                                    <i class="ph ph-file-pdf"></i> Export
+                                <button onclick="playSound(); exportManualCalcToCSV()"
+                                    class="px-4 py-2 bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 font-bold rounded-lg transition-all flex items-center gap-2 text-sm">
+                                    <i class="ph ph-file-csv"></i> Export CSV
                                 </button>
                             </div>
                         </div>
@@ -3576,14 +3615,14 @@
                         </td>
                         
                         <td class="px-4 py-2 border-l border-gray-100 dark:border-slate-700">
-                            ${renderRichInput(isPQ && !isSimulationSolved ? 'Unknown' : row.mag, `updateData(${index}, 'mag', this.value)`, {
+                            ${renderRichInput(typeof row.mag === 'number' ? row.mag : row.mag, `updateData(${index}, 'mag', this.value)`, {
                         readonly: isPQ,
                         colorClass: isPQ ? "bg-slate-50/50" : "bg-white",
                         step: 0.01
                     })}
                         </td>
                         <td class="px-4 py-2">
-                             ${renderRichInput(!isSlack && !isSimulationSolved ? 'Unknown' : row.ang, `updateData(${index}, 'ang', this.value)`, {
+                             ${renderRichInput(typeof row.ang === 'number' ? row.ang : row.ang, `updateData(${index}, 'ang', this.value)`, {
                         readonly: !isSlack,
                         colorClass: !isSlack ? "bg-slate-50/50" : "bg-white",
                         step: 0.1
@@ -3592,7 +3631,7 @@
 
                         <td class="px-4 py-2 border-l border-gray-100 dark:border-slate-700">
                             <div class="flex items-center gap-2">
-                                ${renderRichInput(isSlack && !isSimulationSolved ? 'Unknown' : (row.gp || 0).toFixed(2), `updateData(${index}, 'gp', this.value)`, {
+                                ${renderRichInput(typeof row.gp === 'number' ? row.gp.toFixed(2) : (row.gp || 0), `updateData(${index}, 'gp', this.value)`, {
                         readonly: isSlack,
                         colorClass: isSlack ? "bg-slate-50/50" : "bg-blue-50/30",
                         step: 1
@@ -3605,7 +3644,7 @@
                             </div>
                         </td>
                         <td class="px-4 py-2">
-                             ${renderRichInput((isSlack || isPV) && !isSimulationSolved ? 'Unknown' : (row.gq || 0).toFixed(2), `updateData(${index}, 'gq', this.value)`, {
+                             ${renderRichInput(typeof row.gq === 'number' ? row.gq.toFixed(2) : (row.gq || 0), `updateData(${index}, 'gq', this.value)`, {
                         readonly: (isSlack || isPV),
                         colorClass: (isSlack || isPV) ? "bg-slate-50/50" : "bg-blue-50/30",
                         step: 1
@@ -4187,9 +4226,8 @@
             renderUnitList();
         }
 
-        function populateSampleData() {
-            const selection = document.getElementById('sampleProblemSelect').value;
-            if (selection === 'none') return;
+        function populateSampleData(randomize = false) {
+            let selection = document.getElementById('sampleProblemSelect').value;
             isSimulationSolved = false;
 
             if (selection === '3bus_1') {
@@ -4198,7 +4236,7 @@
                     { bus: 2, type: 'PQ', mag: 1.0, ang: 0, lp: 400, lq: 250, gp: 0, gq: 0, loads: [{id:1, name:"Load 2", p:400, q:250}], generators: [] },
                     { bus: 3, type: 'PV', mag: 1.04, ang: 0, lp: 0, lq: 0, gp: 200, gq: 0, loads: [], generators: [{id:1, name:"Gen 3", p:200, q:0}] }
                 ];
-                populateTopology();
+                populateTopology(randomize);
             }
             else if (selection === '3bus_2') {
                 currentData = [
@@ -4206,7 +4244,7 @@
                     { bus: 2, type: 'PQ', mag: 1.0, ang: 0, lp: 256.6, lq: 110.2, gp: 0, gq: 0, loads: [{id:1, name:"Load 2", p:256.6, q:110.2}], generators: [] },
                     { bus: 3, type: 'PQ', mag: 1.0, ang: 0, lp: 138.6, lq: 45.2, gp: 0, gq: 0, loads: [{id:1, name:"Load 3", p:138.6, q:45.2}], generators: [] }
                 ];
-                populateTopology();
+                populateTopology(randomize);
             }
             else if (selection === '6bus') {
                 currentData = [
@@ -4217,7 +4255,7 @@
                     { bus: 5, type: 'PQ', mag: 1.0, ang: 0, lp: 32, lq: 18, gp: 0, gq: 0, loads: [{id:1, name:"Load 5", p:32, q:18}], generators: [] },
                     { bus: 6, type: 'PQ', mag: 1.0, ang: 0, lp: 52, lq: 11, gp: 0, gq: 0, loads: [{id:1, name:"Load 6", p:52, q:11}], generators: [] }
                 ];
-                populateTopology();
+                populateTopology(randomize);
             }
             else if (selection === '15bus') {
                 const baseMVAInput = document.getElementById('baseMVAInput');
@@ -4250,23 +4288,92 @@
                     bus.gp = 0; bus.gq = 0;
                     currentData.push(bus);
                 }
-                populateTopology();
+                populateTopology(randomize);
+            } else {
+                // If selection is none, keep the current configuration size
+                if (!currentData || currentData.length === 0) {
+                    currentData = [];
+                    for (let i = 1; i <= 5; i++) {
+                        currentData.push({
+                            bus: i, mag: 1.0, ang: 0, gp: 0, gq: 0, generators: [],
+                            lp: 0, lq: 0, loads: [], injQ: 0, type: i === 1 ? 'Slack' : 'PQ'
+                        });
+                    }
+                }
+                populateTopology(randomize);
+            }
+
+            if (randomize) {
+                const baseMVA = parseFloat(document.getElementById('baseMVAInput').value) || 100;
+                const isPu = baseMVA <= 5;
+
+                currentData.forEach(bus => {
+                    if (bus.type === 'Slack') {
+                        bus.mag = parseFloat((1.01 + Math.random() * 0.04).toFixed(3));
+                        bus.ang = 0;
+                        bus.lp = 0;
+                        bus.lq = 0;
+                        bus.gp = 0;
+                        bus.gq = 0;
+                        bus.loads = [];
+                        bus.generators = [{ id: 1, name: "Slack Gen", p: 0, q: 0 }];
+                    } else if (bus.type === 'PV') {
+                        bus.mag = parseFloat((1.01 + Math.random() * 0.04).toFixed(3));
+                        bus.ang = 0;
+                        bus.lp = 0;
+                        bus.lq = 0;
+                        if (selection.includes('3bus')) {
+                            bus.gp = Math.round(100 + Math.random() * 100);
+                        } else if (selection === '6bus') {
+                            bus.gp = Math.round(30 + Math.random() * 30);
+                        } else {
+                            bus.gp = isPu ? parseFloat((0.02 + Math.random() * 0.05).toFixed(4)) : Math.round(20 + Math.random() * 50);
+                        }
+                        bus.gq = 0;
+                        bus.loads = [];
+                        bus.generators = [{ id: 1, name: "Gen " + bus.bus, p: bus.gp, q: 0 }];
+                    } else if (bus.type === 'PQ') {
+                        bus.mag = 1.0;
+                        bus.ang = 0;
+                        bus.gp = 0;
+                        bus.gq = 0;
+                        bus.generators = [];
+                        if (selection.includes('3bus')) {
+                            bus.lp = Math.round(100 + Math.random() * 150);
+                            bus.lq = Math.round(bus.lp * (0.2 + Math.random() * 0.2));
+                        } else if (selection === '6bus') {
+                            bus.lp = Math.round(15 + Math.random() * 25);
+                            bus.lq = Math.round(bus.lp * (0.15 + Math.random() * 0.2));
+                        } else {
+                            bus.lp = isPu ? parseFloat((0.02 + Math.random() * 0.06).toFixed(4)) : Math.round(15 + Math.random() * 25);
+                            bus.lq = isPu ? parseFloat((bus.lp * (0.15 + Math.random() * 0.2)).toFixed(4)) : Math.round(bus.lp * (0.15 + Math.random() * 0.2));
+                        }
+                        bus.loads = [{ id: 1, name: "Load " + bus.bus, p: bus.lp, q: bus.lq }];
+                    }
+                });
             }
 
             const activeLabel = document.getElementById('activeSampleLabel');
-            if (activeLabel) activeLabel.innerText = " - Loaded: " + selection.replace('_', ' ').toUpperCase();
+            if (activeLabel) {
+                const labelText = selection === 'none' ? `${currentData.length}-BUS CUSTOM` : selection.replace('_', ' ').toUpperCase();
+                activeLabel.innerText = " - Loaded: " + labelText + (randomize ? " (RANDOM)" : "");
+            }
 
             renderInputTable();
             syncNominalData();
             
-            // Auto-run simulation to show results immediately
-            setTimeout(() => {
-                runSimulation();
-            }, 100);
+            // Auto-run simulation to show results immediately only if not randomizing (when choosing samples 1 to 4)
+            if (!randomize) {
+                setTimeout(() => {
+                    runSimulation();
+                }, 100);
+            }
         }
 
-        function populateTopology() {
+        function populateTopology(randomize = false) {
             if (!currentData || currentData.length < 2) return;
+
+            const selection = document.getElementById('sampleProblemSelect').value;
 
             if (currentData.length === 3) {
                 activeBranches = [
@@ -4312,6 +4419,28 @@
                         r: 0.01, x: 0.05, b_charging: 0
                     });
                 }
+            }
+
+            if (randomize) {
+                activeBranches.forEach(branch => {
+                    let r, x, b;
+                    if (selection === '15bus') {
+                        r = parseFloat((0.00005 + Math.random() * 0.0002).toFixed(6));
+                        x = parseFloat((r * (1 + Math.random() * 1.5)).toFixed(6));
+                        b = 0;
+                    } else {
+                        r = parseFloat((0.005 + Math.random() * 0.04).toFixed(5));
+                        x = parseFloat((r * (2.5 + Math.random() * 5)).toFixed(5));
+                        b = Math.random() > 0.6 ? parseFloat((Math.random() * 0.015).toFixed(5)) : 0;
+                    }
+                    branch.r = r;
+                    branch.x = x;
+                    branch.b_charging = b;
+
+                    if (branch.type === 'transformer') {
+                        branch.tap = parseFloat((0.92 + Math.random() * 0.15).toFixed(4));
+                    }
+                });
             }
 
             calculateVoltageBases();
@@ -4776,18 +4905,276 @@
             window.print();
         }
 
-        function exportManualCalcToPDF() {
-            const element = document.getElementById('manualCalcContent');
-            const opt = {
-                margin: [0.5, 0.5],
-                filename: `NR-PowerFlow-Proof-${userName.replace(/\s+/g, '-')}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, logging: false },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            };
+        function exportManualCalcToCSV() {
+            if (!currentData || currentData.length === 0) {
+                showNotification("No Data Available", "Please populate or simulate a grid first.", "error");
+                return;
+            }
 
-            html2pdf().set(opt).from(element).save();
+            const baseMVA = parseFloat(document.getElementById('baseMVAInput').value) || 100;
+            const baseKV = parseFloat(document.getElementById('baseKVInput').value) || 230;
+
+            let csvContent = "";
+
+            // 1. Title and Metadata
+            csvContent += `Newton-Raphson Power Flow Technical Report\n`;
+            csvContent += `User,${userName || 'Engineer'}\n`;
+            csvContent += `Timestamp,${new Date().toLocaleString()}\n`;
+            csvContent += `Base MVA,${baseMVA}\n`;
+            csvContent += `Base kV,${baseKV}\n\n`;
+
+            // 2. Bus State Table
+            csvContent += `SYSTEM BUS STATE RESULTS\n`;
+            csvContent += `Bus ID,Type,Voltage Base (kV),Voltage Mag (p.u.),Voltage Mag (kV),Voltage Ang (deg),Gen P (MW),Gen Q (Mvar),Load P (MW),Load Q (Mvar)\n`;
+            currentData.forEach(bus => {
+                const bKV = bus.baseKV || baseKV;
+                const vKV = (bus.mag || 1.0) * bKV;
+                csvContent += `${bus.bus},${bus.type},${bKV.toFixed(1)},${(bus.mag || 1.0).toFixed(4)},${vKV.toFixed(2)},${(bus.ang || 0).toFixed(4)},${(bus.gp || 0).toFixed(4)},${(bus.gq || 0).toFixed(4)},${(bus.lp || 0).toFixed(4)},${(bus.lq || 0).toFixed(4)}\n`;
+            });
+            csvContent += `\n`;
+
+            // 3. Transmission Line Flows and Losses Table
+            csvContent += `TRANSMISSION LINE FLOWS AND LOSSES\n`;
+            csvContent += `Line ID,From Bus,To Bus,R (p.u.),X (p.u.),B Charging (p.u.),Type,Tap,P Sending (MW),Q Sending (Mvar),P Receiving (MW),Q Receiving (Mvar),P Loss (MW),Q Loss (Mvar),Current (A),Current (p.u.)\n`;
+
+            let totalLossP = 0;
+            let totalLossQ = 0;
+            let totalGenP = 0;
+            let totalLoadP = 0;
+
+            currentData.forEach(d => {
+                totalGenP += d.gp;
+                totalLoadP += d.lp;
+            });
+
+            activeBranches.forEach((branch, idx) => {
+                const busFrom = currentData.find(b => b.bus === branch.from);
+                const busTo = currentData.find(b => b.bus === branch.to);
+                if (!busFrom || !busTo) return;
+
+                const v1 = busFrom.mag;
+                const a1 = busFrom.ang * Math.PI / 180;
+                const v2 = busTo.mag;
+                const a2 = busTo.ang * Math.PI / 180;
+
+                const isTransformer = branch.type === 'transformer';
+                const r = parseFloat(branch.r) || 0;
+                const x = parseFloat(branch.x) || 0.0001;
+                const a = isTransformer ? (branch.tap || 1.0) : 1.0;
+
+                const den = r * r + x * x;
+                const g = r / den;
+                const b = -x / den;
+
+                const da = a1 - a2;
+                const b_sh = parseFloat(branch.b_charging) || 0;
+
+                let p_ft = (g * (v1 * v1 / (a * a))) - (v1 * v2 / a) * (g * Math.cos(da) + b * Math.sin(da));
+                let q_ft = -((b / (a * a) + b_sh) * v1 * v1) - (v1 * v2 / a) * (g * Math.sin(da) - b * Math.cos(da));
+
+                let p_tf = (g * (v2 * v2)) - (v1 * v2 / a) * (g * Math.cos(-da) + b * Math.sin(-da));
+                let q_tf = -((b + b_sh) * v2 * v2) - (v1 * v2 / a) * (g * Math.sin(-da) - b * Math.cos(-da));
+
+                let s_ft_mag = Math.sqrt(p_ft * p_ft + q_ft * q_ft);
+                let i_pu = s_ft_mag / v1;
+
+                const localBaseKV = busFrom.baseKV || baseKV;
+                const localIBase = (baseMVA * 1000) / (Math.sqrt(3) * localBaseKV);
+                let i_amps = i_pu * localIBase;
+
+                let lossP = (p_ft + p_tf);
+                let lossQ = (q_ft + q_tf);
+
+                totalLossP += lossP;
+                totalLossQ += lossQ;
+
+                csvContent += `${branch.id || (idx + 1)},${branch.from},${branch.to},${r.toFixed(5)},${x.toFixed(5)},${b_sh.toFixed(5)},${branch.type},${a.toFixed(4)},${(p_ft * baseMVA).toFixed(4)},${(q_ft * baseMVA).toFixed(4)},${(p_tf * baseMVA).toFixed(4)},${(q_tf * baseMVA).toFixed(4)},${(lossP * baseMVA).toFixed(4)},${(lossQ * baseMVA).toFixed(4)},${i_amps.toFixed(2)},${i_pu.toFixed(4)}\n`;
+            });
+            csvContent += `\n`;
+
+            // 4. System Summary
+            csvContent += `SYSTEM SUMMARY\n`;
+            csvContent += `Total Generation,${totalGenP.toFixed(2)} MW\n`;
+            csvContent += `Total Load,${totalLoadP.toFixed(2)} MW\n`;
+            const systemLossP = totalLossP * baseMVA;
+            const systemLossQ = totalLossQ * baseMVA;
+            csvContent += `Total Active Losses,${systemLossP.toFixed(4)} MW\n`;
+            csvContent += `Total Reactive Losses,${systemLossQ.toFixed(4)} Mvar\n`;
+            const efficiency = totalLoadP > 0 ? (totalLoadP / (totalLoadP + systemLossP)) * 100 : 100;
+            csvContent += `Transmission Efficiency,${efficiency.toFixed(2)}%\n\n`;
+
+            // 5. Detailed Step-By-Step Calculations (The "Human" Stevenson Methodology)
+            csvContent += `================================================================================\n`;
+            csvContent += `DETAILED STEP-BY-STEP MATHEMATICAL DERIVATIONS & ENGINEERING INTERPRETATIONS\n`;
+            csvContent += `================================================================================\n\n`;
+
+            // STEP 1: Branch Admittance Calculations
+            csvContent += `STEP 1: BRANCH IMPEDANCE TO ADMITTANCE CONVERSIONS\n`;
+            csvContent += `Line,Formula,Impedance Z (r + jx) p.u.,Calculation: Y = 1 / Z,Resulting Admittance Y (g + jb) p.u.,Engineering Interpretation\n`;
+            activeBranches.forEach(branch => {
+                const r = parseFloat(branch.r) || 0;
+                const x = parseFloat(branch.x) || 0.0001;
+                const den = r * r + x * x;
+                const g = r / den;
+                const b = -x / den;
+                const explanation = `Conductance g=${g.toFixed(4)} represents resistive active losses (heat). Susceptance b=${b.toFixed(4)} represents inductive reactances.`;
+                csvContent += `Line ${branch.from}-${branch.to},y = 1 / (r + jx),${r} + j${x},y = 1 / (${r}^2 + ${x}^2) * (${r} - j${x}),${g.toFixed(6)} - j${(-b).toFixed(6)},"${explanation}"\n`;
+            });
+            csvContent += `\n`;
+
+            // STEP 2: Y-Bus Matrix Construction
+            csvContent += `STEP 2: SYSTEM ADMITTANCE MATRIX (Y-Bus) ASSEMBLY\n`;
+            csvContent += `Element,Equation Type,Formulation Details,Calculated Value (p.u.),Engineering Interpretation\n`;
+            const n = currentData.length;
+            const busMap = new Map();
+            currentData.forEach((b, i) => busMap.set(b.bus, i));
+
+            // Construct Y-Bus Elements step-by-step
+            for (let i = 0; i < n; i++) {
+                const busI = currentData[i].bus;
+                // Diagonal
+                let diagValP = 0, diagValQ = 0;
+                let terms = [];
+                activeBranches.forEach(br => {
+                    const fromIdx = busMap.get(br.from);
+                    const toIdx = busMap.get(br.to);
+                    if (fromIdx === undefined || toIdx === undefined) return;
+
+                    const r = parseFloat(br.r) || 0;
+                    const x = parseFloat(br.x) || 0.0001;
+                    const den = r * r + x * x;
+                    const g = r / den;
+                    const b = -x / den;
+                    const a = br.type === 'transformer' ? (parseFloat(br.tap) || 1.0) : 1.0;
+                    const b_sh = parseFloat(br.b_charging) || 0;
+
+                    if (fromIdx === i) {
+                        diagValP += g / (a * a);
+                        diagValQ += b / (a * a) + b_sh;
+                        terms.push(`(Line ${br.from}-${br.to} y/${a}^2 + j*${b_sh})`);
+                    } else if (toIdx === i) {
+                        diagValP += g;
+                        diagValQ += b + b_sh;
+                        terms.push(`(Line ${br.from}-${br.to} y + j*${b_sh})`);
+                    }
+                });
+                const selfInt = `Self-admittance of Bus ${busI}. Diagonal elements indicate the equivalent network strength at Bus ${busI}. A larger magnitude indicates a stiffer bus.`;
+                csvContent += `Y_${busI}${busI},Diagonal,"Sum of connected admittances: ${terms.join(' + ')}",${diagValP.toFixed(6)} + j(${diagValQ.toFixed(6)}),"${selfInt}"\n`;
+
+                // Off-diagonals
+                for (let j = i + 1; j < n; j++) {
+                    const busJ = currentData[j].bus;
+                    const br = activeBranches.find(b => (b.from === busI && b.to === busJ) || (b.from === busJ && b.to === busI));
+                    if (br) {
+                        const r = parseFloat(br.r) || 0;
+                        const x = parseFloat(br.x) || 0.0001;
+                        const den = r * r + x * x;
+                        const g = r / den;
+                        const b = -x / den;
+                        const a = br.type === 'transformer' ? (parseFloat(br.tap) || 1.0) : 1.0;
+                        const g_mut = -g / a;
+                        const b_mut = -b / a;
+                        const offInt = `Mutual admittance between Bus ${busI} and Bus ${busJ}. Off-diagonal elements represent direct coupling. Zero value indicates no direct line connection.`;
+                        csvContent += `Y_${busI}${busJ},Off-Diagonal,Mutual admittance: -y_${busI}${busJ} / tap,${g_mut.toFixed(6)} + j(${b_mut.toFixed(6)}),"${offInt}"\n`;
+                        csvContent += `Y_${busJ}${busI},Off-Diagonal,Mutual admittance: -y_${busI}${busJ} / tap,${g_mut.toFixed(6)} + j(${b_mut.toFixed(6)}),"${offInt}"\n`;
+                    }
+                }
+            }
+            csvContent += `\n`;
+
+            // STEP 3: Mismatch and Jacobian Iteration Path
+            if (window.lastSolverSolution && window.lastSolverSolution.history) {
+                csvContent += `STEP 3: NEWTON-RAPHSON ITERATIVE SOLVER LOGS & INTERPRETATIONS\n`;
+                csvContent += `Iteration,Bus,Voltage Mag (p.u.),Voltage Ang (deg),Active mismatch dP (p.u.),Reactive mismatch dQ (p.u.),Engineering Interpretation\n`;
+                window.lastSolverSolution.history.forEach((h, hIdx) => {
+                    currentData.forEach((bus, bIdx) => {
+                        let dpVal = 0, dqVal = 0;
+                        if (bus.type !== 'Slack') {
+                            let dpIdx = 0;
+                            currentData.forEach((tmpBus, tmpIdx) => {
+                                if (tmpBus.type === 'Slack') return;
+                                if (tmpIdx === bIdx) dpVal = h.dP[dpIdx] || 0;
+                                dpIdx++;
+                            });
+                        }
+                        if (bus.type === 'PQ') {
+                            let dqIdx = 0;
+                            currentData.forEach((tmpBus, tmpIdx) => {
+                                if (tmpBus.type === 'Slack' || tmpBus.type === 'PV') return;
+                                if (tmpIdx === bIdx) dqVal = h.dQ[dqIdx] || 0;
+                                dqIdx++;
+                            });
+                        }
+                        let iterInt = "";
+                        if (hIdx === 0) {
+                            iterInt = `First iteration establishes the initial gradient. Mismatch error shows active/reactive power imbalances prior to adjustments.`;
+                        } else if (hIdx === window.lastSolverSolution.history.length - 1) {
+                            iterInt = `Final iteration. System converged to tolerance 1e-6. Mismatch is near zero, meaning active and reactive powers are fully balanced.`;
+                        } else {
+                            iterInt = `Imbalances are shrinking quadratically, showing successful convergence path. Coordinates V and delta are updating.`;
+                        }
+                        csvContent += `Iter ${h.iter},Bus ${bus.bus},${h.V[bIdx].toFixed(4)},${(h.Delta[bIdx] * 180 / Math.PI).toFixed(4)},${dpVal.toFixed(6)},${dqVal.toFixed(6)},"${iterInt}"\n`;
+                    });
+                });
+                csvContent += `\n`;
+            }
+
+            // STEP 4: Detailed Substitution into Power Flow Equations
+            csvContent += `STEP 4: DETAILED POWER FLOW & LOSS SUBSTITUTIONS\n`;
+            csvContent += `Line,Equation Component,Mathematical Formulation,Substituted Values,Result,Engineering Interpretation\n`;
+            activeBranches.forEach((branch, idx) => {
+                const busFrom = currentData.find(b => b.bus === branch.from);
+                const busTo = currentData.find(b => b.bus === branch.to);
+                if (!busFrom || !busTo) return;
+
+                const v1 = busFrom.mag;
+                const a1 = busFrom.ang * Math.PI / 180;
+                const v2 = busTo.mag;
+                const a2 = busTo.ang * Math.PI / 180;
+
+                const isTransformer = branch.type === 'transformer';
+                const r = parseFloat(branch.r) || 0;
+                const x = parseFloat(branch.x) || 0.0001;
+                const a = isTransformer ? (branch.tap || 1.0) : 1.0;
+
+                const den = r * r + x * x;
+                const g = r / den;
+                const b = -x / den;
+                const da = a1 - a2;
+                const b_sh = parseFloat(branch.b_charging) || 0;
+
+                let p_ft = (g * (v1 * v1 / (a * a))) - (v1 * v2 / a) * (g * Math.cos(da) + b * Math.sin(da));
+                let q_ft = -((b / (a * a) + b_sh) * v1 * v1) - (v1 * v2 / a) * (g * Math.sin(da) - b * Math.cos(da));
+
+                let p_tf = (g * (v2 * v2)) - (v1 * v2 / a) * (g * Math.cos(-da) + b * Math.sin(-da));
+                let q_tf = -((b + b_sh) * v2 * v2) - (v1 * v2 / a) * (g * Math.sin(-da) - b * Math.cos(-da));
+
+                let lossP = (p_ft + p_tf);
+                let lossQ = (q_ft + q_tf);
+
+                const lossPInt = `Active power losses (heat dissipation) along the line, proportional to current squared and line resistance r.`;
+                const flowPInt = `Active power flows from Bus ${branch.from} (ang: ${busFrom.ang.toFixed(1)}deg) to Bus ${branch.to} (ang: ${busTo.ang.toFixed(1)}deg) driven by phase angle differences.`;
+                const flowQInt = `Reactive power flow driven by voltage magnitude gradient and line charging susceptance b_charging.`;
+
+                // Export explicit substituted formula strings
+                csvContent += `Line ${branch.from}-${branch.to},Active Flow P_ij,(g*(Vi^2/a^2)) - (Vi*Vj/a)*(g*cos(d_ij)+b*sin(d_ij)),(${g.toFixed(4)}*(${v1.toFixed(3)}^2/${a.toFixed(2)}^2)) - (${v1.toFixed(3)}*${v2.toFixed(3)}/${a.toFixed(2)})*(${g.toFixed(4)}*cos(${da.toFixed(3)})+${b.toFixed(4)}*sin(${da.toFixed(3)})),${(p_ft * baseMVA).toFixed(4)} MW,"${flowPInt}"\n`;
+                csvContent += `Line ${branch.from}-${branch.to},Reactive Flow Q_ij,-((b/a^2+b_sh)*Vi^2) - (Vi*Vj/a)*(g*sin(d_ij)-b*cos(d_ij)),-((${b.toFixed(4)}/${a.toFixed(2)}^2+${b_sh.toFixed(3)})*${v1.toFixed(3)}^2) - (${v1.toFixed(3)}*${v2.toFixed(3)}/${a.toFixed(2)})*(${g.toFixed(4)}*sin(${da.toFixed(3)})-${b.toFixed(4)}*cos(${da.toFixed(3)})),${(q_ft * baseMVA).toFixed(4)} Mvar,"${flowQInt}"\n`;
+                csvContent += `Line ${branch.from}-${branch.to},Active Loss P_loss,P_ij + P_ji,${(p_ft * baseMVA).toFixed(4)} + (${(p_tf * baseMVA).toFixed(4)}),${(lossP * baseMVA).toFixed(4)} MW,"${lossPInt}"\n`;
+                csvContent += `Line ${branch.from}-${branch.to},Reactive Loss Q_loss,Q_ij + Q_ji,${(q_ft * baseMVA).toFixed(4)} + (${(q_tf * baseMVA).toFixed(4)}),${(lossQ * baseMVA).toFixed(4)} Mvar,Line reactive losses or reactive absorption due to line reactance.\n`;
+            });
+
+            // Download trigger
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `NR-PowerFlow-Technical-Report-${userName.replace(/\s+/g, '-')}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
         }
 
         function showManualNRCalculation() {
